@@ -1,12 +1,8 @@
+import argparse
 import serial
 import socket
 import struct
-import sys
 import time
-
-myip = socket.gethostbyname(socket.gethostname())
-mip = '239.255.50.10'
-mport = 5010
 
 def dump_bytes(bdata):
     rstr = ''
@@ -40,10 +36,6 @@ def dump_memory(memory, rlow, rhi, blk_size):
         print('')
 
 def mem_str(addr):
-    '''
-    :param addr: int
-    :return: two byte hex
-    '''
     return "%04x"%(addr)
 
 def hex_dump(data, step):
@@ -79,24 +71,36 @@ def write_pos(r, c, ch):
     arduino.write(EOMFLAG)
 
 
-# Define contigious memory range which we are interested in
+# Define contiguous memory range which we are interested in
 MEM_RNG_LO = 0x11c0
 MEM_RNG_HI = 0x12b0
 
-# DCS-BIOS specific constants
+# DCS-BIOS specific defaults
 SYNC_SIZE = 4               # number of bytes in sync frame
 MC_ADDR = '239.255.50.10'   # Multicast address
 MC_PORT = 5010              # Multicast port
 
-# Serial port constants
-PORTNAME = 'COM10'
+# Serial port defaults
+SP_NAME = 'COM9'
 EOMFLAG = b'\xFF'
 
 DEBUG = True
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='dcsb Director')
+    parser.add_argument('-i', '--ipaddr', help=f'Specify multicast address [{MC_ADDR}]')
+    parser.add_argument('-p', '--port', help=f'Specify multicast port [{MC_PORT}]')
+    parser.add_argument('-s', '--serial', help=f'Name of serial port [{SP_NAME}]')
+    args = parser.parse_args()
+    if args.ipaddr:
+        MC_ADDR = args.ipaddr
+    if args.port:
+        MC_PORT = args.port
+    if args.serial:
+        SP_NAME = args.serial
+    
     # Open COM port
-    arduino = serial.Serial(port=PORTNAME, baudrate=115200, timeout=.1)
+    arduino = serial.Serial(port=SP_NAME, baudrate=115200, timeout=.1)
 
     # Configure and open multicast listener per DCS BIOS settings
     print(f'Listening for multicast on {MC_ADDR}')
