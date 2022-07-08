@@ -1,7 +1,8 @@
-# Importing Libraries
+import datetime
+import random
 import serial
 import time
-arduino = serial.Serial(port='COM4', baudrate=115200, timeout=.1)
+arduino = serial.Serial(port='COM10', baudrate=115200, timeout=.1)
 
 
 def write(x):
@@ -15,6 +16,9 @@ def write(x):
 def write_pos(r, c, ch):
     dts = [b'C', bytes([int(r)]), bytes([int(c)]), ch.encode('utf-8'), b'\xFF']
     arduino.write(b''.join(dts))  # EOM
+    #time.sleep(0.04)
+    while arduino.read() != b'\x55':
+        pass
 
 
 def write_line(line, data):
@@ -24,7 +28,11 @@ def write_line(line, data):
     dts.append(b'\xFF')
     msg = b''.join(dts)
     arduino.write(b''.join(dts))
+    while arduino.read() != b'\x55':
+        pass
 
+
+random.seed()
 
 while True:
     choice = input("Enter (l)ine, (c)haracter, (t)iming, or clea(r)? :")
@@ -32,7 +40,16 @@ while True:
         r = input("Enter row # :")
         c = input("Enter col # :")
         ch = input("Enter a character: ")
+        now = datetime.datetime.now()
         write_pos(r, c, ch)
+        # wait for ack from arduino
+        # ret = ''
+        # while ret != b'\x55':
+        #     ret = arduino.read()
+        #    time.sleep(0.05)
+        end = datetime.datetime.now()
+        print(f'Arduino ack took {end - now} seconds')
+
     elif choice == 'l':
         ln = input("Enter line # :")
         msg = input("Enter line contents :")
@@ -42,8 +59,18 @@ while True:
             write_line(r, "                         ")
             time.sleep(0.5)
     else:
-        t = input("Enter timing value (ms) :")
-        for r in range(0, 10):
-            for c in range(0, 25):
-                write_pos(r, c, chr(33+r+c))
-                time.sleep(int(t)/1000)
+        msg = ""
+        ch = []
+        now = datetime.datetime.now()
+        # for i in range(0, 100):
+        #     x = random.randint(0, 9)
+        #     y = random.randint(0, 23)
+        #     c = random.randint(33, 125)
+        #     write_pos(x, y, chr(c))
+        for j in range(0, 10):
+            for i in range(0, 25):
+                ch.append(chr(random.randint(33, 125)))
+            write_line(str(j), msg.join(ch))
+            ch.clear()
+        end = datetime.datetime.now()
+        print(f'loop took {end - now} seconds')
