@@ -81,7 +81,7 @@ MC_ADDR = '239.255.50.10'   # Multicast address
 MC_PORT = 5010              # Multicast port
 
 # Serial port defaults
-SP_NAME = 'COM9'
+SP_NAME = 'COM10'
 EOMFLAG = b'\xFF'
 
 DEBUG = True
@@ -137,7 +137,7 @@ if __name__ == '__main__':
 
         ci = SYNC_SIZE  # Start SYNC_SIZE bytes in (past sync sequence)
         while ( ci < len(data)):
-            # Parse the memory addres and data block size in little-endian byte order
+            # Parse the memory address and data block size in little-endian byte order
             m_lo = data[ci]
             m_hi = data[ci+1]
             bsize_lo = data[ci+2]
@@ -146,7 +146,7 @@ if __name__ == '__main__':
             blk_size = (bsize_hi << 8) + bsize_lo
             mem_addr = (m_hi << 8) + m_lo
             if DEBUG:
-                print(f'Datablock found\nAddr: {"%04x" %(mem_addr)}\nSize: {"%04x" %(blk_size)}\nCont: ', end="")
+                print(f'Data block found\nAddr: {"%04x" %(mem_addr)}\nSize: {"%04x" %(blk_size)}\nCont: ', end="")
                 for di in range (0, blk_size):
                     print(f'{"%02x" % (data[di + ci + SYNC_SIZE])}', end="")
                 print(f' [{dump_chars(data[ci+SYNC_SIZE : ci+SYNC_SIZE+blk_size])}]')
