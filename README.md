@@ -24,3 +24,22 @@ display and handshakes with dcsbDirector over the (virtual) serial port (USB).
 
 Included in this repo is the tool stest.py which was used for debugging / analysis of the 
 serial handshaking between the PC and the Arduino. It is **NOT** needed for operation.
+
+##### Issues with SYS -> EGI display
+As of July 2022, the SYS -> EGI display does not function properly. This is (apparently) a bug within the DCS 
+base distribution. See EGI_bug.md within this repo for explanation.
+
+##### Missing W in initial startup screen 
+At startup of DCS-BIOS and the A-10 CDU, the top line should read:
+`WAYPT     0   D5/B1`
+however, as of July 2022, this will initially show up as:
+` AYPT     0   D5/B1`
+
+Upon investiating the raw stream coming from DCS-BIOS, this appears to be a latent bug somewhere
+within either DCS-BIOS or the underlying message routine from DCS. The 'W' is missing. 
+
+This can be handled either within dcsbDirector with a brute-force insertion of the character
+(ugly), or perhaps some more digging into the DCS-BIOS data stream. 
+
+Either way, as it stands, the 'W' will be missing until a screen referesh of the CDU as 
+dcsbDirector sees no need to update the value when it is static.

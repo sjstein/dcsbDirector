@@ -242,5 +242,4 @@ if __name__ == '__main__':
                     if time.process_time() - ts > 2:
                         print(f'dcsbDirector: Timeout waiting for ACK from serial port')
                     pass
-                print(f'Arduino ack took: {time.perf_counter() - ts}')
             ci += blk_size + SYNC_SIZE
