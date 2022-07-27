@@ -2,7 +2,7 @@ import datetime
 import random
 import serial
 import time
-arduino = serial.Serial(port='COM10', baudrate=115200, timeout=.1)
+arduino = serial.Serial(port='COM11', baudrate=115200, timeout=.1)
 
 
 def write(x):
@@ -13,13 +13,25 @@ def write(x):
     arduino.write(b'\xFF')
 
 
-def write_pos(r, c, ch):
+def write_char(r, c, ch):
     dts = [b'C', bytes([int(r)]), bytes([int(c)]), ch.encode('utf-8'), b'\xFF']
-    arduino.write(b''.join(dts))  # EOM
+    arduino.write(b''.join(dts))
     #time.sleep(0.04)
     while arduino.read() != b'\x55':
         pass
 
+def write_invalid(ch):
+    dts = [ch.encode('utf-8'), b'\xFF']
+    arduino.write(b''.join(dts))
+    #time.sleep(0.04)
+    while arduino.read() != b'\x55':
+        pass
+
+def clear_screen():
+    arduino.write(b'X')
+    # time.sleep(0.04)
+    while arduino.read() != b'\x55':
+        pass
 
 def write_line(line, data):
     dts = [b'L', bytes([int(line)])]    # Tell arduino we are sending it a line for update and specify number of lines
@@ -35,13 +47,13 @@ def write_line(line, data):
 random.seed()
 
 while True:
-    choice = input("Enter (l)ine, (c)haracter, (t)iming, or clea(r)? :")
+    choice = input("Enter (l)ine, (c)haracter, (t)iming, (i)nvalid, or clea(r)? :")
     if choice == 'c':
-        r = input("Enter row # :")
-        c = input("Enter col # :")
+        r = input("Enter line # :")
+        c = input("Enter char # :")
         ch = input("Enter a character: ")
         now = datetime.datetime.now()
-        write_pos(r, c, ch)
+        write_char(r, c, ch)
         # wait for ack from arduino
         # ret = ''
         # while ret != b'\x55':
@@ -54,11 +66,15 @@ while True:
         ln = input("Enter line # :")
         msg = input("Enter line contents :")
         write_line(ln, msg)
+
     elif choice == 'r':
-        for r in range(0, 10):
-            write_line(r, "                         ")
-            time.sleep(0.5)
-    else:
+        clear_screen()
+
+    elif choice == 'i':
+        ch = input('Enter (invalid) char to send: ')
+        write_invalid(ch)
+
+    elif choice == 't':
         msg = ""
         ch = []
         now = datetime.datetime.now()
@@ -66,11 +82,16 @@ while True:
         #     x = random.randint(0, 9)
         #     y = random.randint(0, 23)
         #     c = random.randint(33, 125)
-        #     write_pos(x, y, chr(c))
-        for j in range(0, 10):
-            for i in range(0, 25):
-                ch.append(chr(random.randint(33, 125)))
-            write_line(str(j), msg.join(ch))
-            ch.clear()
-        end = datetime.datetime.now()
-        print(f'loop took {end - now} seconds')
+        #     write_char(x, y, chr(c))
+        iter = 0
+        for k in range(1, 100):
+            for j in range(0, 10):
+                for i in range(0, 25):
+                    ch.append(chr(random.randint(33, 125)))
+                write_line(str(j), msg.join(ch))
+                ch.clear()
+            end = datetime.datetime.now()
+            print(f'avg loop time: {(end - now)/k} seconds')
+
+    else:
+        pass

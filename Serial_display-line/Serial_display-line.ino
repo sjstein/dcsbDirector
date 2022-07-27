@@ -1,39 +1,38 @@
 #include <LCDWIKI_GUI.h> //Core graphics library
 #include <LCDWIKI_KBV.h> //Hardware-specific library
 
-//define some colour values
+//define colors
 #define BLACK   0x0000
 #define BLUE    0x001F
 #define RED     0xF800
 #define GREEN   0x07E0
-
 #define A10     0x6EE0
 #define CYAN    0x07FF
 #define MAGENTA 0xF81F
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 
-// Declare which fonts we will be using
-extern uint8_t SmallFont[];
-extern uint8_t BigFont[];
-extern uint8_t SevenSegNumFont[];
+#define ACK 0x55
+
+// Declare which font we will be using
 extern uint8_t A10CFont[];
 
 LCDWIKI_KBV mylcd(ILI9486,A3,A2,A1,A0,A4); //model,cs,cd,wr,rd,reset
 
 void drawChar(int row, int col, unsigned char c) {
-  int16_t x = 20 + col * 19;
-  int16_t y = row * 32 + 6;
+  int16_t x = 24 + col * 18;
+  int16_t y = row * 32 + 3;
   mylcd.Set_Text_Cousur(x, y);
   mylcd.write(c);
-  
-  //mylcd.Draw_Char( x, y, c, A10, BLACK, 3, 0);
 }
 
-void printLine(int row, int col, char* newValue) {
-  int16_t y = row * 32 + 6;
-  //mylcd.Print_String("                        ", CENTER, y);
+void printLine(int row, char* newValue) {
+  int16_t y = row * 32 + 3;
   mylcd.Print_String( newValue, CENTER, y );
+}
+
+void printError(int row, char msg[]) {
+  printLine(row, msg);
 }
 
 char readByte() {
@@ -43,8 +42,9 @@ char readByte() {
 }
 
 void flushSerialBuffer() {
+  char trash;
   while(Serial.available()){
-    char trash = Serial.read();
+    trash = Serial.read();
   }
   return;
 }
@@ -61,57 +61,66 @@ void setup() {
   mylcd.Set_Text_colour(A10);
   mylcd.Set_Text_Back_colour(BLACK);
   mylcd.Set_Text_Size(3);
-  Serial.println("Beginning timing test");
 
-// measure time to write n characters
-  int t1 = millis();
-  for (int i = 0; i < 100; i++) {
+  // Display random screen upon startup
+  for (int i = 0; i < 500; i++) {
     drawChar(char(random(0,10)),char(random(0,24)),char(random(33,125)));
   }
-  // char mystr[] = "1234567890abcdefghijlmnp";
-  // for (int i = 0; i < 100; i++){
-  //   printLine(char(random(0,9)), 0, mystr);
-  // }
-  int t2 = millis();
-  Serial.print("Time taken by the task: "); Serial.print(t2-t1); Serial.println(" milliseconds");
   flushSerialBuffer();
   mylcd.Fill_Screen(BLACK);
 }
 
- 
-
 void loop() {
   if (Serial.available()){
     static char msg[26];
-    static unsigned int message_pos = 0;
-    char inByte = readByte();
+    char inByte = readByte(); // First byte determine message type
     
     switch(inByte) {
+
       case 'C':
         // Request to update a specific character
         for (int i = 0; i < 4; i++){
           msg[i]=readByte();
         }
         drawChar(char(msg[0]),char(msg[1]),char(msg[2]));
-        // msg[3] contains the 0xFF flag
-        delay(50);
-        Serial.write(0x55);
+        // msg[3] contains the 0xFF EOM flag
+        Serial.write(ACK);
         break;
    
-      case 'L':
-      // Request to update a whole line
-        for (int i = 0; i < 25; i++){
+      case 'L': {  // Enclose this case within curly braces to allow inline declare/assignment of lnum 
+        // Request to update a whole line
+        char lnum = readByte();         // Second byte in message specifies line number
+        for (int i = 0; i < 25; i++){   // Grab the rest of the string
           msg[i]=readByte();
+          if (msg[i] == 0) {
+            msg[i] = 32;                // Change empty memory location into space character
+          }
         }
-        msg[25] = '\0';
-        printLine(char(msg[0]), 0, &msg[1]);
+        msg[24] = '\0';                 // Terminate string
+        printLine(lnum, msg);
         flushSerialBuffer();
-        Serial.write(0x55);
+        Serial.write(ACK);
         break;
-
+      }
+        
+      case 'X':
+        // Request to clear the screen
+        mylcd.Fill_Screen(BLACK);
+        flushSerialBuffer();
+        Serial.write(ACK);
+        break;
+        
       default:
-        printLine(0,0,"Hit default block");
+        mylcd.Fill_Screen(BLACK);
+        printLine(3,"+----------------------+");
+        printLine(4,"| ARDUINO EXCEPTION:   |");
+        printLine(5,"| INVALID MSG CHAR     |");
+        printLine(6,"| FROM BIOS DIR ->     |");
+        printLine(7,"+----------------------+");    
+        drawChar(char(6),char(19),char(inByte));
+        flushSerialBuffer();
+        Serial.write(ACK);
     }
   }
-  delay(0.5);  
+  delay(0.5);  // is this needed?
  }
