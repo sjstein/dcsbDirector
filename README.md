@@ -35,7 +35,7 @@ At startup of DCS-BIOS and the A-10 CDU, the top line should read:
 however, as of July 2022, this will initially show up as:
 ` AYPT     0   D5/B1`
 
-Upon investiating the raw stream coming from DCS-BIOS, this appears to be a latent bug somewhere
+Upon investigating the raw stream coming from DCS-BIOS, this appears to be a latent bug somewhere
 within either DCS-BIOS or the underlying message routine from DCS. The 'W' is missing. 
 
 This can be handled either within dcsbDirector with a brute-force insertion of the character
