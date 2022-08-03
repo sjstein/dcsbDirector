@@ -7,8 +7,8 @@ import time
 
 def dump_bytes(bdata):
     rstr = ''
-    for c in range(0, len(bdata)):
-        rstr += f'{"%02x" % (bdata[c])}'
+    for cnt in range(0, len(bdata)):
+        rstr += f'{"%02x" % (bdata[cnt])}'
     return rstr
 
 
@@ -18,8 +18,8 @@ def dump_byte(bdata):
 
 def dump_chars(cdata):
     rstr = ''
-    for c in range(0, len(cdata)):
-        rstr += f'{cdata[c]}'
+    for cnt in range(0, len(cdata)):
+        rstr += f'{cdata[cnt]}'
     return rstr
 
 
@@ -33,68 +33,68 @@ def dump_char(cdata):
 def dump_line(memory, lnum):
     rstr = ''
     st_addr = addr_from_line(lnum)
-    for i in range(0, LINE_LEN):
-        rstr += f'{memory[st_addr + i][0]}'
+    for cnt in range(0, LINE_LEN):
+        rstr += f'{memory[st_addr + cnt][0]}'
     return rstr
 
 
-def dump_memory(memory, rlow, rhi, blk_size):
-    for addr in range(rlow, rhi, blk_size):
-        print(f'{mem_str(addr)} ', end="")
-        for i in range(0, blk_size):
-            print(f'{dump_byte(memory[addr + i][0])}', end="")
+def dump_memory(memory, rlow, rhi, blk_sz):
+    for adr in range(rlow, rhi, blk_sz):
+        print(f'{mem_str(adr)} ', end="")
+        for cnt in range(0, blk_sz):
+            print(f'{dump_byte(memory[adr + cnt][0])}', end="")
         print(' | ', end="")
-        for i in range(0, blk_size):
-            print(f'{dump_char(memory[addr + i][0])}', end="")
+        for cnt in range(0, blk_sz):
+            print(f'{dump_char(memory[adr + cnt][0])}', end="")
         print('')
 
 
-def mem_str(addr):
-    return "%04x" % addr
+def mem_str(adr):
+    return "%04x" % adr
 
 
-def hex_dump(data, step):
-    i = 0
+def hex_dump(dat, step):
+    cnt = 0
     rstr = ''
-    while i < len(data):
-        for c in range(0, min(len(data) - i, step)):
-            rstr += dump_byte(data[i + c])
-        if min(len(data) - i, step) != step:
-            for c in range(0, step - len(data) % step):
+    while cnt < len(dat):
+        for c1 in range(0, min(len(dat) - cnt, step)):
+            rstr += dump_byte(dat[cnt + c1])
+        if min(len(dat) - cnt, step) != step:
+            for c1 in range(0, step - len(dat) % step):
                 rstr += '  '
         rstr += ' | '
-        for c in range(0, min(len(data) - i, step)):
-            rstr += dump_char(data[i + c])
+        for c1 in range(0, min(len(dat) - cnt, step)):
+            rstr += dump_char(dat[cnt + c1])
         rstr += '\n'
-        i += step
+        cnt += step
     return rstr
 
 
-def char_pos(addr, addr_low, width):
-    if addr < addr_low:
+def char_pos(adr, adr_low, width):
+    if adr < adr_low:
         return -1, -1
-    offset = addr - addr_low
+    offset = adr - adr_low
     r = offset // width
-    c = offset % width
-    return r, c
+    d = offset % width
+    return r, d
 
 
-def write_char(r, c, ch):
-    dts = [CHRFLAG, bytes([int(r)]), bytes([int(c)]), bytes([int(ch)]), EOMFLAG]
+def write_char(x, y, ch):
+    dts = [CHRFLAG, bytes([int(x)]), bytes([int(y)]), bytes([int(ch)]), EOMFLAG]
     arduino.write(b''.join(dts))
 
 
 def write_line(memory, lnum):
     dts = [LINFLAG, bytes([int(lnum)])]
-    base_addr = addr_from_line(lnum)
-    for index in range(0, LINE_LEN):
-        dts.append(memory[base_addr + index])
+    base_adr = addr_from_line(lnum)
+    for cnt in range(0, LINE_LEN):
+        dts.append(memory[base_adr + cnt])
     dts.append(EOMFLAG)
     arduino.write(b''.join(dts))
 
 
-def line_from_addr(addr):
-    return (addr - MEM_RNG_LO) // LINE_LEN
+def line_from_addr(adr):
+    return (adr - MEM_RNG_LO) // LINE_LEN
 
 
 def addr_from_line(lnum):
@@ -141,7 +141,7 @@ if __name__ == '__main__':
         DEBUG = args.debug
 
     print(f'DCS-BIOS Director running')
-    print(f' Listening on : {MC_ADDR} : {MC_PORT}')
+    print(f' Listening on : {MC_ADDR}  {MC_PORT}')
     print(f' Writing to   : {SP_NAME}')
 
     # Open multicast port
@@ -238,6 +238,7 @@ if __name__ == '__main__':
                 updated_lines.remove(line)
 
                 ts = time.perf_counter()
+                # noinspection PyUnboundLocalVariable
                 while arduino.read() != ACKFLAG:
                     if time.process_time() - ts > 2:
                         print(f'dcsbDirector: Timeout waiting for ACK from serial port')
