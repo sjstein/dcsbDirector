@@ -138,7 +138,7 @@ if __name__ == '__main__':
     if args.serial:
         SP_NAME = args.serial
     if args.debug:
-        DEBUG = args.debug
+        DEBUG = int(args.debug)
 
     print(f'DCS-BIOS Director running')
     print(f' Listening on : {MC_ADDR}  {MC_PORT}')
@@ -148,6 +148,7 @@ if __name__ == '__main__':
     multicast_group = MC_ADDR
     server_address = ('', MC_PORT)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Tell windows to not usurp the socket
     sock.bind(server_address)
     group = socket.inet_aton(multicast_group)
     mreq = struct.pack('4sL', group, socket.INADDR_ANY)
@@ -159,6 +160,7 @@ if __name__ == '__main__':
     except serial.serialutil.SerialException:
         print(f'dcsbDirector: Unable to open serial port "{SP_NAME}". Exiting.')
         exit(-1)
+    time.sleep(2)
 
     # Define members to hold memory states
     new_mem = {}            # Memory snapshot from DCS-BIOS stream
@@ -172,7 +174,11 @@ if __name__ == '__main__':
         old_mem[i] = b'\x00'
 
     while True:
-        data, address = sock.recvfrom(1024)
+        try:
+            data, address = sock.recvfrom(1024)
+        except OSError:
+            print("OSError on sock recv")
+            
         if DEBUG > 2:
             print(f'received {len(data)} bytes from {address}:')
             print(f'{hex_dump(data, 8)}')
@@ -237,10 +243,14 @@ if __name__ == '__main__':
                     write_char(l, c, old_mem[addr][0])
                 updated_lines.remove(line)
 
-                ts = time.perf_counter()
-                # noinspection PyUnboundLocalVariable
-                while arduino.read() != ACKFLAG:
-                    if time.process_time() - ts > 2:
+                rtn_val = ''
+                ts = time.time()
+                #noinspection PyUnboundLocalVariable
+                while rtn_val != ACKFLAG:
+                    rtn_val = arduino.read()
+                    # print(f'Read {rtn_val} from Arduino, ts = {ts}, process_time = {time.time()}')
+                    if time.time() - ts > 2:
                         print(f'dcsbDirector: Timeout waiting for ACK from serial port')
+                        break
                     pass
             ci += blk_size + SYNC_SIZE
